@@ -17,9 +17,8 @@ lint:
 
 test:
 	PYTHONPATH=. pytest $(UNIT_TESTS)
-
-e2e-test:
 	PYTHONPATH=. pytest $(E2E_TESTS)
+
 run:
 	$(PYTHON) scripts/run_etl.py
 
