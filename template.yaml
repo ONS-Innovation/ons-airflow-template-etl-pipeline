@@ -1,0 +1,97 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: etl-pipeline-module
+  title: ETL Pipeline Module Template
+  description: >
+    Scaffold a new ETL pipeline module with Airflow, tests, docs, and best practices.
+  tags:
+    - python
+    - airflow
+    - etl
+    - data
+spec:
+  owner: your-team-or-github-org
+  type: service
+
+  parameters:
+    - title: Project Information
+      required:
+        - name
+        - owner
+        - description
+        - repoUrl
+      properties:
+        name:
+          title: Project Name
+          type: string
+          description: Name of the new ETL pipeline module (e.g., my-etl-pipeline)
+          pattern: '^[a-zA-Z0-9-_]+$'
+        owner:
+          title: Owner
+          type: string
+          description: Team or person responsible for this module
+        description:
+          title: Description
+          type: string
+          description: Short description of the module
+        repoUrl:
+          title: Repository Location
+          type: string
+          description: GitHub repository URL (e.g., github.com/your-org/{{name}})
+        visibility:
+          title: Repository Visibility
+          type: string
+          enum: [public, private]
+          default: private
+
+  steps:
+    - id: fetch-base
+      name: Fetch Template
+      action: fetch:template
+      input:
+        url: ./  # Uses this repo as the template source
+        values:
+          name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+          description: ${{ parameters.description }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        repoVisibility: ${{ parameters.visibility }}
+        defaultBranch: main
+
+    - id: register
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+
+  output:
+    links:
+      - title: Open Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in Backstage
+        icon: catalog
+        url: /catalog/default/component/${{ parameters.name }}
+
+# Optionally, include a skeleton catalog-info.yaml in your template repo:
+#
+# apiVersion: backstage.io/v1alpha1
+# kind: Component
+# metadata:
+#   name: ${{ values.name }}
+#   description: ${{ values.description }}
+#   tags:
+#     - etl
+#     - airflow
+# spec:
+#   type: service
+#   owner: ${{ values.owner }}
+#   lifecycle: experimental

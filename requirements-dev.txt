@@ -1,0 +1,11 @@
+# Development dependencies for the ETL pipeline project
+
+pytest
+pytest-cov
+flake8
+pre-commit
+apache-airflow
+mypy
+black
+isort
+bandit
