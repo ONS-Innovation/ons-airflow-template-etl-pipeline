@@ -1,97 +1,179 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: etl-pipeline-module
-  title: ETL Pipeline Module Template
-  description: >
-    Scaffold a new ETL pipeline module with Airflow, tests, docs, and best practices.
+  name: ons-airflow-template-etl-pipeline
+  title: Airflow ETL Template
+  description: An Airflow ETL pipeline Python template
   tags:
     - python
     - airflow
     - etl
     - data
+  annotations:
+    backstage.io/techdocs-ref: dir:.
 spec:
-  owner: your-team-or-github-org
-  type: service
+  owner: group:unknown
+  type: airflow-module
 
   parameters:
-    - title: Project Information
+    - title: Basic Settings
       required:
-        - name
-        - owner
-        - description
-        - repoUrl
+        - repository_name
+        - repository_description
+        - repository_owner
+        - catalog_owner
+        - code_owners
+        - repository_visibility
+        - default_branch
       properties:
-        name:
-          title: Project Name
+        repository_name:
+          title: Name
           type: string
-          description: Name of the new ETL pipeline module (e.g., my-etl-pipeline)
-          pattern: '^[a-zA-Z0-9-_]+$'
-        owner:
-          title: Owner
-          type: string
-          description: Team or person responsible for this module
-        description:
+          description: What is your repository name? (Use hyphens or underscores for readability. Avoid special characters, spaces, or uppercase letters - e.g. my-awesome-project)
+          ui:field: EntityNamePicker
+        repository_description:
           title: Description
           type: string
-          description: Short description of the module
-        repoUrl:
-          title: Repository Location
+          description: What is your repository description?
+        repository_owner:
+          title: Repo Organization
           type: string
-          description: GitHub repository URL (e.g., github.com/your-org/{{name}})
-        visibility:
-          title: Repository Visibility
+          description: What is the organization for your repository? (e.g. your GitHub username)
+          default: ONS-Innovation
+        catalog_owner:
+          title: Catalog Owner
           type: string
-          enum: [public, private]
-          default: private
+          description: Who owns your repository? (user or group)
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: [User, Group]
+        catalog_system:
+          title: Pipeline
+          type: string
+          description: Which pipeline is this connected to?
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: System
+        code_owners:
+          title: Code Owners
+          type: string
+          description: Who should be the code owners for this repository? (GitHub username or team, e.g. @username or @ONSdigital/team-name)
+          default: "@ONSdigital"
+        repository_visibility:
+          title: Visibility
+          type: string
+          description: What is your repository visibility?
+          default: public
+          enum:
+            - public
+            - internal
+            - private
+        default_branch:
+          title: What is your default branch name?
+          type: string
+          default: main
+
+    - title: Repo Settings
+      properties:
+        repo_settings:
+          title: Use recommended repo settings?
+          type: boolean
+          default: true
+
+      dependencies:
+        repo_settings:
+          allOf:
+            - if:
+                properties:
+                  repo_settings:
+                    const: false
+              then:
+                required:
+                  - required_approving_review_count
+                properties:
+                  dismiss_stale_reviews:
+                    title: Dismiss stale pull request approvals when new commits are pushed?
+                    type: boolean
+                    default: true
+                  required_approving_review_count:
+                    title: Approval Reviews
+                    type: integer
+                    description: Number of approving reviews required to merge a pull request
+                    default: 1
+                  require_last_push_approval:
+                    title: Require approval of the most recent reviewable push?
+                    type: boolean
+                    default: true
+                  require_conversation_resolution:
+                    title: Require conversation resolution before merging?
+                    type: boolean
+                    default: true
 
   steps:
-    - id: fetch-base
-      name: Fetch Template
+    - id: template
+      name: Fetch Skeleton
       action: fetch:template
       input:
-        url: ./  # Uses this repo as the template source
+        url: ./project_template
+        templateFileExtension: true
         values:
-          name: ${{ parameters.name }}
-          owner: ${{ parameters.owner }}
-          description: ${{ parameters.description }}
+          repository_name: ${{ parameters.repository_name }}
+          repository_description: ${{ parameters.repository_description }}
+          repository_owner: ${{ parameters.repository_owner }}
+          catalog_owner: ${{ parameters.catalog_owner }}
+          catalog_system: ${{ parameters.catalog_system }}
+          code_owners: ${{ parameters.code_owners }}
+          repository_visibility: ${{ parameters.repository_visibility }}
+          default_branch: ${{ parameters.default_branch }}
+
+          # computed values
+          is_public_repo: ${{ parameters.repository_visibility == "public" }}
+          package_manager_url: ${{ "https://python-poetry.org/" if parameters.package_manager == "poetry" else "https://pipenv.pypa.io/en/latest/" }}
 
     - id: publish
-      name: Publish to GitHub
+      name: Publish
       action: publish:github
       input:
-        allowedHosts: ['github.com']
-        description: ${{ parameters.description }}
-        repoUrl: ${{ parameters.repoUrl }}
-        repoVisibility: ${{ parameters.visibility }}
-        defaultBranch: main
+        repoUrl: github.com?owner=${{ parameters.repository_owner }}&repo=${{ parameters.repository_name }}
+        description: ${{ parameters.repository_description }}
+        repoVisibility: ${{ parameters.repository_visibility }}
+        defaultBranch: ${{ parameters.default_branch }}
+
+        hasIssues: true
+        hasProjects: false
+        hasWiki: false
+        allowAutoMerge: false
+        allowMergeCommit: false
+        allowRebaseMerge: false
+        allowSquashMerge: true
+        allowUpdateBranch: true
+        deleteBranchOnMerge: true
+
+        protectEnforceAdmins: true
+        requireCodeOwnerReviews: true
+        requiredLinearHistory: true
+        requiredCommitSigning: true
+
+        dismissStaleReviews: ${{ parameters.dismiss_stale_reviews if not parameters.repo_settings else true }}
+        requiredApprovingReviewCount: ${{ parameters.required_approving_review_count if not parameters.repo_settings else 1 }}
+        requireLastPushApproval: ${{ parameters.require_last_push_approval if not parameters.repo_settings else true }}
+        requiredConversationResolution: ${{ parameters.require_conversation_resolution if not parameters.repo_settings else true }}
+
+        # note: extra work to enable enable_secret_scanning, enable_vulnerability_alerts, or enable_automated_security_fixes
 
     - id: register
-      name: Register in Backstage Catalog
+      name: Register
       action: catalog:register
       input:
-        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
-        catalogInfoPath: '/catalog-info.yaml'
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
 
   output:
     links:
-      - title: Open Repository
-        url: ${{ steps['publish'].output.remoteUrl }}
-      - title: Open in Backstage
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in catalog
         icon: catalog
-        url: /catalog/default/component/${{ parameters.name }}
-
-# Optionally, include a skeleton catalog-info.yaml in your template repo:
-#
-# apiVersion: backstage.io/v1alpha1
-# kind: Component
-# metadata:
-#   name: ${{ values.name }}
-#   description: ${{ values.description }}
-#   tags:
-#     - etl
-#     - airflow
-# spec:
-#   type: service
-#   owner: ${{ values.owner }}
-#   lifecycle: experimental
+        entityRef: ${{ steps.register.output.entityRef }}

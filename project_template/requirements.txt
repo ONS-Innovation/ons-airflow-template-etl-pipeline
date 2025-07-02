@@ -1,0 +1,7 @@
+# Flask is not directly related to the ETL pipeline project you described, but here are the contents for the `requirements.txt` file that lists the production dependencies required for the ETL pipeline project:
+
+pandas
+apache-airflow
+sqlalchemy
+requests
+python-dotenv
