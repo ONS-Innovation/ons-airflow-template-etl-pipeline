@@ -1,7 +1,7 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: ons-airflow-template-etl-pipeline
+  name: python-airflow-etl-pipeline-template
   title: Airflow ETL Template
   description: An Airflow ETL pipeline Python template
   tags:
