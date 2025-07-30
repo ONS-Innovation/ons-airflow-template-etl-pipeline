@@ -11,6 +11,10 @@ metadata:
   annotations:
     backstage.io/techdocs-ref: dir:.
     github.com/project-slug: ${{ values.repository_owner }}/${{ values.repository_name }}
+  links:
+    - url: https://codespaces.new/${{ values.repository_owner }}/${{ values.repository_name }}
+      title: Open Development Environment 
+      icon: scaffolder
 spec:
   type: airflow-module
   lifecycle: experimental
