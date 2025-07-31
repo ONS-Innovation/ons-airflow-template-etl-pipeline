@@ -15,6 +15,9 @@ metadata:
     - url: https://codespaces.new/${{ values.repository_owner }}/${{ values.repository_name }}
       title: Open Development Environment 
       icon: scaffolder
+    - url: vscode://vscode.git/clone?url=https://github.com/${{ values.repository_owner }}/${{ values.repository_name }}.git
+      title: Open in Local Visual Studio Code
+      icon: scaffolder
 spec:
   type: airflow-module
   lifecycle: experimental
